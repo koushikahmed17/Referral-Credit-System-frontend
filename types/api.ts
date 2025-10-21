@@ -3,21 +3,20 @@
 // User types
 export interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   referralCode: string;
+  credits: number;
   createdAt: string;
-  updatedAt: string;
-  isEmailVerified: boolean;
-  profilePicture?: string;
+  updatedAt?: string;
 }
 
 export interface UserProfile extends User {
-  totalReferrals: number;
-  successfulReferrals: number;
-  totalEarnings: number;
-  pendingEarnings: number;
-  lastLoginAt: string;
+  totalReferrals?: number;
+  successfulReferrals?: number;
+  totalEarnings?: number;
+  pendingEarnings?: number;
 }
 
 // Auth types
@@ -27,51 +26,69 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  name: string;
   email: string;
   password: string;
+  firstName: string;
+  lastName: string;
   referralCode?: string;
 }
 
 export interface AuthResponse {
-  user: User;
-  token: string;
-  refreshToken: string;
-  expiresIn: number;
-}
-
-export interface RefreshTokenRequest {
-  refreshToken: string;
+  success: boolean;
+  message: string;
+  data: {
+    user: User;
+    token: string;
+  };
 }
 
 // Referral types
 export interface Referral {
   id: string;
   referrerId: string;
-  refereeId: string;
+  referredUserId: string;
   referralCode: string;
   status: ReferralStatus;
   rewardAmount: number;
   createdAt: string;
-  completedAt?: string;
+  updatedAt?: string;
+  referredUser?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
 }
 
-export type ReferralStatus = "pending" | "completed" | "cancelled" | "expired";
+export type ReferralStatus = "PENDING" | "CONFIRMED" | "EXPIRED";
 
 export interface ReferralStats {
   totalReferrals: number;
-  successfulReferrals: number;
-  totalEarnings: number;
-  pendingEarnings: number;
-  conversionRate: number;
-  averageRewardAmount: number;
+  confirmedReferrals: number;
+  pendingReferrals: number;
+  totalCreditsEarned: number;
+  referralCode: string;
 }
 
-export interface ReferralLink {
-  userId: string;
-  referralCode: string;
-  url: string;
-  qrCode: string;
+export interface ReferralListResponse {
+  success: boolean;
+  data: {
+    referrals: Referral[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}
+
+export interface ReferralDetailsResponse {
+  success: boolean;
+  data: {
+    referralCode: string;
+    isValid: boolean;
+    referrerName?: string;
+  };
 }
 
 // Purchase types
@@ -79,20 +96,36 @@ export interface Purchase {
   id: string;
   userId: string;
   amount: number;
-  currency: string;
   description: string;
-  status: PurchaseStatus;
-  referralId?: string;
+  isFirstPurchase: boolean;
+  referralRewarded: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
-
-export type PurchaseStatus = "pending" | "completed" | "failed" | "refunded";
 
 export interface CreatePurchaseRequest {
   amount: number;
   description: string;
-  currency?: string;
+}
+
+export interface CreatePurchaseResponse {
+  success: boolean;
+  message: string;
+  data: {
+    purchase: Purchase;
+    referralReward?: {
+      credited: boolean;
+      amount: number;
+      referrerId?: string;
+    };
+  };
+}
+
+export interface PurchaseStats {
+  totalPurchases: number;
+  totalSpent: number;
+  firstPurchaseDate?: string;
+  lastPurchaseDate?: string;
 }
 
 // Notification types

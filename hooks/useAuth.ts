@@ -2,14 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetcher } from "@/utils/fetcher";
 import { API_ENDPOINTS, STORAGE_KEYS } from "@/utils/constants";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  referralCode: string;
-  createdAt: string;
-}
+import { User, AuthResponse, LoginRequest, RegisterRequest } from "@/types/api";
 
 interface AuthState {
   user: User | null;
@@ -18,17 +11,9 @@ interface AuthState {
   isLoading: boolean;
 }
 
-interface LoginData {
-  email: string;
-  password: string;
-}
+interface LoginData extends LoginRequest {}
 
-interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  referralCode?: string;
-}
+interface RegisterData extends RegisterRequest {}
 
 export const useAuth = () => {
   const router = useRouter();
@@ -80,12 +65,16 @@ export const useAuth = () => {
     try {
       setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-      const response = await fetcher.post<{
-        user: User;
-        token: string;
-      }>(API_ENDPOINTS.AUTH.LOGIN, loginData);
+      const response = await fetcher.post<AuthResponse>(
+        API_ENDPOINTS.AUTH.LOGIN,
+        loginData
+      );
 
-      const { user, token } = response;
+      if (!response.success) {
+        throw new Error(response.message || "Login failed");
+      }
+
+      const { user, token } = response.data;
 
       // Store in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
@@ -113,12 +102,16 @@ export const useAuth = () => {
     try {
       setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-      const response = await fetcher.post<{
-        user: User;
-        token: string;
-      }>(API_ENDPOINTS.AUTH.REGISTER, registerData);
+      const response = await fetcher.post<AuthResponse>(
+        API_ENDPOINTS.AUTH.REGISTER,
+        registerData
+      );
 
-      const { user, token } = response;
+      if (!response.success) {
+        throw new Error(response.message || "Registration failed");
+      }
+
+      const { user, token } = response.data;
 
       // Store in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
@@ -172,7 +165,15 @@ export const useAuth = () => {
     try {
       if (!authState.token) return;
 
-      const user = await fetcher.get<User>(API_ENDPOINTS.USER.PROFILE);
+      const response = await fetcher.get<{ success: boolean; data: { user: User } }>(
+        API_ENDPOINTS.AUTH.PROFILE
+      );
+
+      if (!response.success) {
+        throw new Error("Failed to fetch profile");
+      }
+
+      const user = response.data.user;
 
       // Update localStorage
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));

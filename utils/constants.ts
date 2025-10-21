@@ -1,14 +1,14 @@
 // API Configuration
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 // App Configuration
 export const APP_NAME = "ReferralApp";
 export const APP_DESCRIPTION = "A modern referral system built with Next.js";
 
 // Referral Configuration
-export const REFERRAL_REWARD_AMOUNT = 10.0;
-export const REFERRAL_MINIMUM_PURCHASE = 25.0;
+export const REFERRAL_REWARD_AMOUNT = 2.0; // Both users get 2 credits each
+export const REFERRAL_MINIMUM_PURCHASE = 0.01; // Minimum for first purchase
 
 // Routes
 export const ROUTES = {
@@ -32,19 +32,17 @@ export const API_ENDPOINTS = {
     LOGIN: "/auth/login",
     REGISTER: "/auth/register",
     LOGOUT: "/auth/logout",
-    REFRESH: "/auth/refresh",
+    PROFILE: "/auth/profile",
   },
-  USER: {
-    PROFILE: "/user/profile",
-    UPDATE_PROFILE: "/user/profile",
+  REFERRALS: {
+    STATS: "/referrals/stats",
+    LIST: "/referrals/list",
+    VALIDATE: "/referrals/validate",
+    DETAILS: "/referrals/details",
   },
-  REFERRAL: {
-    STATS: "/referral/stats",
-    LINK: "/referral/link",
-    HISTORY: "/referral/history",
-  },
-  PURCHASE: {
-    CREATE: "/purchase/create",
-    HISTORY: "/purchase/history",
+  PURCHASES: {
+    CREATE: "/purchases",
+    LIST: "/purchases",
+    STATS: "/purchases/stats",
   },
 } as const;

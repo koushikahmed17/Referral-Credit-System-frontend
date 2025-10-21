@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -18,6 +20,13 @@ export default function LoginPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -55,14 +64,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual login logic
-      console.log("Login data:", formData);
+      const result = await login(formData);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Redirect to dashboard
-      router.push("/dashboard");
+      if (result.success) {
+        // Redirect to dashboard
+        router.push("/dashboard");
+      } else {
+        setErrors({ general: result.error || "Invalid email or password. Please try again." });
+      }
     } catch (error) {
       console.error("Login failed:", error);
       setErrors({ general: "Invalid email or password. Please try again." });

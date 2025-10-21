@@ -1,25 +1,35 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("ref");
+  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -33,8 +43,12 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
     }
 
     if (!formData.email.trim()) {
@@ -67,14 +81,22 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual registration logic
-      console.log("Registration data:", { ...formData, referralCode });
+      const registerData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        ...(referralCode && { referralCode }),
+      };
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await register(registerData);
 
-      // Redirect to dashboard or login
-      router.push("/login?registered=true");
+      if (result.success) {
+        // Redirect to dashboard after successful registration
+        router.push("/dashboard");
+      } else {
+        setErrors({ general: result.error || "Registration failed. Please try again." });
+      }
     } catch (error) {
       console.error("Registration failed:", error);
       setErrors({ general: "Registration failed. Please try again." });
@@ -108,12 +130,21 @@ export default function RegisterPage() {
             )}
 
             <Input
-              label="Full Name"
-              name="name"
-              value={formData.name}
+              label="First Name"
+              name="firstName"
+              value={formData.firstName}
               onChange={handleChange}
-              error={errors.name}
-              placeholder="Enter your full name"
+              error={errors.firstName}
+              placeholder="Enter your first name"
+            />
+
+            <Input
+              label="Last Name"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              error={errors.lastName}
+              placeholder="Enter your last name"
             />
 
             <Input
