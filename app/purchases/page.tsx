@@ -1,67 +1,77 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { StatCard } from "@/components/StatCard";
 import { Navbar } from "@/components/Navbar";
+import { Loader } from "@/components/Loader";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  usePurchaseStats,
+  usePurchasesList,
+  useCreatePurchase,
+} from "@/hooks/usePurchases";
 
 export default function PurchasesPage() {
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { stats, loading: statsLoading, refetch: refetchStats } = usePurchaseStats();
+  const { purchases, loading: purchasesLoading, refetch: refetchPurchases } = usePurchasesList();
+  const { createPurchase, loading: creating } = useCreatePurchase();
 
-  // Mock data
-  const user = {
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && !authLoading) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  const handleLogout = async () => {
+    await logout();
   };
 
-  const purchaseStats = {
-    totalPurchases: 15,
-    totalSpent: 1250.75,
-    averageOrderValue: 83.38,
-    lastPurchase: "3 days ago",
+  const handlePurchase = async (description: string, amount: number) => {
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    const result = await createPurchase({ amount, description });
+
+    if (result.success && result.data) {
+      const { purchase, referralReward } = result.data;
+      
+      let message = `Successfully purchased ${description} for $${amount}!`;
+      
+      if (referralReward?.credited) {
+        message += ` 🎉 You and your referrer each earned ${referralReward.amount} credits!`;
+      }
+      
+      setSuccessMessage(message);
+      
+      // Refetch data to show updated stats
+      refetchStats();
+      refetchPurchases();
+      
+      // Refresh user to update credits
+      if (user) {
+        window.location.reload(); // Simple way to refresh all data
+      }
+    } else {
+      setErrorMessage(result.error || "Failed to create purchase");
+    }
   };
 
-  const recentPurchases = [
-    {
-      id: 1,
-      item: "Premium Plan",
-      amount: 99.99,
-      date: "2024-01-15",
-      status: "completed",
-    },
-    {
-      id: 2,
-      item: "Add-on Feature",
-      amount: 49.99,
-      date: "2024-01-10",
-      status: "completed",
-    },
-    {
-      id: 3,
-      item: "Storage Upgrade",
-      amount: 29.99,
-      date: "2024-01-05",
-      status: "completed",
-    },
-  ];
-
-  const handleLogout = () => {
-    // TODO: Implement logout logic
-    router.push("/");
-  };
-
-  const handlePurchase = async (item: string, amount: number) => {
-    // TODO: Implement actual purchase logic
-    console.log(`Simulating purchase: ${item} for $${amount}`);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Show success message or redirect
-    alert(`Successfully purchased ${item} for $${amount}!`);
-  };
+  // Show loader while checking authentication
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -72,16 +82,36 @@ export default function PurchasesPage() {
           <div className="space-y-2">
             <h1 className="text-3xl font-bold">Purchases</h1>
             <p className="text-muted-foreground">
-              Manage your purchases and simulate new ones for testing
+              Manage your purchases and make new ones
             </p>
+            <div className="text-sm text-muted-foreground">
+              Current Credits: <strong className="text-primary">{user.credits}</strong>
+            </div>
           </div>
 
+          {/* Success/Error Messages */}
+          {successMessage && (
+            <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg">
+              {successMessage}
+            </div>
+          )}
+          {errorMessage && (
+            <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg">
+              {errorMessage}
+            </div>
+          )}
+
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              title="Total Purchases"
-              value={purchaseStats.totalPurchases}
-              description="All time purchases"
+          {statsLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader />
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Total Purchases"
+                value={stats.totalPurchases}
+                description="All time purchases"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -97,12 +127,12 @@ export default function PurchasesPage() {
                   />
                 </svg>
               }
-            />
+              />
 
-            <StatCard
-              title="Total Spent"
-              value={`$${purchaseStats.totalSpent}`}
-              description="Lifetime spending"
+              <StatCard
+                title="Total Spent"
+                value={`$${stats.totalSpent.toFixed(2)}`}
+                description="Lifetime spending"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -118,12 +148,14 @@ export default function PurchasesPage() {
                   />
                 </svg>
               }
-            />
+              />
 
-            <StatCard
-              title="Average Order"
-              value={`$${purchaseStats.averageOrderValue}`}
-              description="Per purchase"
+              <StatCard
+                title="First Purchase"
+                value={stats.firstPurchaseDate 
+                  ? new Date(stats.firstPurchaseDate).toLocaleDateString() 
+                  : "N/A"}
+                description="Your first order"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -139,12 +171,14 @@ export default function PurchasesPage() {
                   />
                 </svg>
               }
-            />
+              />
 
-            <StatCard
-              title="Last Purchase"
-              value={purchaseStats.lastPurchase}
-              description="Most recent order"
+              <StatCard
+                title="Last Purchase"
+                value={stats.lastPurchaseDate 
+                  ? new Date(stats.lastPurchaseDate).toLocaleDateString() 
+                  : "N/A"}
+                description="Most recent order"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -159,16 +193,17 @@ export default function PurchasesPage() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-              }
-            />
-          </div>
+                }
+              />
+            </div>
+          ) : null}
 
-          {/* Simulate Purchase Section */}
+          {/* Create Purchase Section */}
           <div className="bg-card rounded-lg border p-6 space-y-6">
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Simulate Purchase</h2>
+              <h2 className="text-xl font-semibold">Make a Purchase</h2>
               <p className="text-muted-foreground">
-                Test the referral system by simulating purchases
+                Purchase items and earn rewards through referrals
               </p>
             </div>
 
@@ -185,6 +220,8 @@ export default function PurchasesPage() {
                   <Button
                     size="sm"
                     onClick={() => handlePurchase("Premium Plan", 99.99)}
+                    loading={creating}
+                    disabled={creating}
                   >
                     Buy Now
                   </Button>
@@ -203,6 +240,8 @@ export default function PurchasesPage() {
                   <Button
                     size="sm"
                     onClick={() => handlePurchase("Add-on Feature", 49.99)}
+                    loading={creating}
+                    disabled={creating}
                   >
                     Buy Now
                   </Button>
@@ -221,6 +260,8 @@ export default function PurchasesPage() {
                   <Button
                     size="sm"
                     onClick={() => handlePurchase("Storage Upgrade", 29.99)}
+                    loading={creating}
+                    disabled={creating}
                   >
                     Buy Now
                   </Button>
@@ -231,51 +272,63 @@ export default function PurchasesPage() {
 
           {/* Recent Purchases */}
           <div className="bg-card rounded-lg border p-6 space-y-4">
-            <h3 className="text-lg font-semibold">Recent Purchases</h3>
-            <div className="space-y-3">
-              {recentPurchases.map((purchase) => (
-                <div
-                  key={purchase.id}
-                  className="flex items-center justify-between p-3 bg-muted rounded-md"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <svg
-                        className="h-5 w-5 text-primary"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                      </svg>
+            <h3 className="text-lg font-semibold">Purchase History</h3>
+            {purchasesLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader />
+              </div>
+            ) : purchases.length > 0 ? (
+              <div className="space-y-3">
+                {purchases.map((purchase) => (
+                  <div
+                    key={purchase.id}
+                    className="flex items-center justify-between p-3 bg-muted rounded-md"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <svg
+                          className="h-5 w-5 text-primary"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium">{purchase.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(purchase.createdAt).toLocaleDateString()}
+                        </p>
+                        {purchase.isFirstPurchase && (
+                          <span className="text-xs text-primary font-medium">
+                            First Purchase 🎉
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{purchase.item}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(purchase.date).toLocaleDateString()}
-                      </p>
+                    <div className="text-right">
+                      <p className="font-medium">${purchase.amount.toFixed(2)}</p>
+                      {purchase.referralRewarded && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Referral Rewarded
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">${purchase.amount}</p>
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        purchase.status === "completed"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {purchase.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No purchases yet</p>
+                <p className="text-sm mt-2">Make your first purchase to get started!</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
