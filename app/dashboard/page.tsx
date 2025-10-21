@@ -1,38 +1,45 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { StatCard } from "@/components/StatCard";
 import { CopyButton } from "@/components/CopyButton";
 import { Navbar } from "@/components/Navbar";
+import { Loader } from "@/components/Loader";
+import { useAuth } from "@/hooks/useAuth";
+import { useReferralStats, useReferralsList } from "@/hooks/useReferrals";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { stats, loading: statsLoading, error: statsError } = useReferralStats();
+  const { referrals, loading: referralsLoading } = useReferralsList(1, 5);
 
-  // Mock data - in real app, this would come from API
-  const user = {
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
-  };
-
-  const stats = {
-    totalReferrals: 12,
-    successfulReferrals: 8,
-    totalEarnings: 240.5,
-    pendingEarnings: 45.0,
-  };
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && !authLoading) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const referralLink =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/register?ref=${user.id}`
-      : `/register?ref=${user.id}`;
+    typeof window !== "undefined" && user
+      ? `${window.location.origin}/register?ref=${user.referralCode}`
+      : "";
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
-    router.push("/");
+  const handleLogout = async () => {
+    await logout();
   };
+
+  // Show loader while checking authentication
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -41,18 +48,37 @@ export default function DashboardPage() {
         <div className="space-y-8">
           {/* Header */}
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <h1 className="text-3xl font-bold">
+              Welcome, {user.firstName} {user.lastName}!
+            </h1>
             <p className="text-muted-foreground">
               Track your referral performance and earnings
             </p>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">
+                Your Credits: <strong className="text-primary">{user.credits}</strong>
+              </span>
+              <span className="text-muted-foreground">
+                Referral Code: <strong className="text-primary">{user.referralCode}</strong>
+              </span>
+            </div>
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              title="Total Referrals"
-              value={stats.totalReferrals}
-              description="People you've referred"
+          {statsLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader />
+            </div>
+          ) : statsError ? (
+            <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg">
+              Failed to load stats. Please try again later.
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Total Referrals"
+                value={stats.totalReferrals}
+                description="People you've referred"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -70,10 +96,10 @@ export default function DashboardPage() {
               }
             />
 
-            <StatCard
-              title="Successful Referrals"
-              value={stats.successfulReferrals}
-              description="Completed referrals"
+              <StatCard
+                title="Confirmed Referrals"
+                value={stats.confirmedReferrals}
+                description="Completed referrals"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -89,13 +115,12 @@ export default function DashboardPage() {
                   />
                 </svg>
               }
-              trend={{ value: 15, isPositive: true }}
-            />
+              />
 
-            <StatCard
-              title="Total Earnings"
-              value={`$${stats.totalEarnings}`}
-              description="Lifetime earnings"
+              <StatCard
+                title="Total Credits Earned"
+                value={stats.totalCreditsEarned}
+                description="From referrals"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -111,12 +136,12 @@ export default function DashboardPage() {
                   />
                 </svg>
               }
-            />
+              />
 
-            <StatCard
-              title="Pending Earnings"
-              value={`$${stats.pendingEarnings}`}
-              description="Awaiting payout"
+              <StatCard
+                title="Pending Referrals"
+                value={stats.pendingReferrals}
+                description="Awaiting first purchase"
               icon={
                 <svg
                   className="h-4 w-4"
@@ -131,9 +156,10 @@ export default function DashboardPage() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-              }
-            />
-          </div>
+                }
+              />
+            </div>
+          ) : null}
 
           {/* Referral Link Section */}
           <div className="bg-card rounded-lg border p-6 space-y-4">
@@ -156,34 +182,70 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-card rounded-lg border p-6 space-y-4">
               <h3 className="text-lg font-semibold">Recent Referrals</h3>
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-3 bg-muted rounded-md"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {String.fromCharCode(64 + i)}
-                        </span>
+              {referralsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader />
+                </div>
+              ) : referrals.length > 0 ? (
+                <>
+                  <div className="space-y-3">
+                    {referrals.map((referral) => (
+                      <div
+                        key={referral.id}
+                        className="flex items-center justify-between p-3 bg-muted rounded-md"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary">
+                              {referral.referredUser?.firstName?.[0] || "?"}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {referral.referredUser
+                                ? `${referral.referredUser.firstName} ${referral.referredUser.lastName}`
+                                : "User"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(referral.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              referral.status === "CONFIRMED"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {referral.status}
+                          </span>
+                          {referral.status === "CONFIRMED" && (
+                            <span className="text-sm font-medium text-green-600">
+                              +{referral.rewardAmount} credits
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">Referral {i}</p>
-                        <p className="text-xs text-muted-foreground">
-                          2 days ago
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-green-600">
-                      $10.00
-                    </span>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full">
-                View All Referrals
-              </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => router.push("/referrals")}
+                  >
+                    View All Referrals
+                  </Button>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No referrals yet</p>
+                  <p className="text-sm mt-2">
+                    Share your referral link to get started!
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="bg-card rounded-lg border p-6 space-y-4">

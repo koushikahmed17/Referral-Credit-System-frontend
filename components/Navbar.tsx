@@ -1,13 +1,10 @@
 import React from "react";
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
+import { User } from "@/types/api";
 
 interface NavbarProps {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
+  user?: User | null;
   onLogout?: () => void;
 }
 
@@ -50,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             {user ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-muted-foreground">
-                  Welcome, {user.name}
+                  Welcome, {user.firstName}
                 </span>
                 {onLogout && (
                   <button
