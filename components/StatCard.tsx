@@ -2,13 +2,10 @@ import React from "react";
 
 interface StatCardProps {
   title: string;
-  value: string | number;
-  description?: string;
+  value: number | string;
+  description: string;
   icon?: React.ReactNode;
-  trend?: {
-    value: number;
-    isPositive: boolean;
-  };
+  trend?: "up" | "down" | "neutral";
   className?: string;
 }
 
@@ -20,36 +17,69 @@ export const StatCard: React.FC<StatCardProps> = ({
   trend,
   className = "",
 }) => {
+  const trendColors = {
+    up: "text-green-600",
+    down: "text-red-600",
+    neutral: "text-muted-foreground",
+  };
+
+  const trendIcon = {
+    up: (
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+        />
+      </svg>
+    ),
+    down: (
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"
+        />
+      </svg>
+    ),
+    neutral: null,
+  };
+
   return (
     <div
-      className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`}
+      className={`bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl border border-border p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group ${className}`}
     >
-      <div className="p-6">
-        <div className="flex items-center justify-between space-y-0 pb-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          {icon && <div className="h-4 w-4 text-muted-foreground">{icon}</div>}
-        </div>
-        <div className="space-y-1">
-          <div className="text-2xl font-bold">{value}</div>
-          {trend && (
-            <div className="flex items-center space-x-1">
-              <span
-                className={`text-xs ${
-                  trend.isPositive ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {trend.isPositive ? "+" : ""}
-                {trend.value}%
-              </span>
-              <span className="text-xs text-muted-foreground">
-                from last month
-              </span>
-            </div>
-          )}
-          {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
-          )}
-        </div>
+      <div className="flex items-center justify-between mb-4">
+        {icon && (
+          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary/10 to-purple-500/10 rounded-xl text-primary group-hover:scale-110 transition-transform duration-300">
+            {icon}
+          </div>
+        )}
+        {trend && (
+          <div className={`flex items-center gap-1 ${trendColors[trend]}`}>
+            {trendIcon[trend]}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <p className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          {value}
+        </p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
     </div>
   );

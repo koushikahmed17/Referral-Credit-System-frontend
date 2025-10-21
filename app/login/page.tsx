@@ -1,156 +1,169 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { useToastStore } from "@/store/toastStore";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
-import { Navbar } from "@/components/Navbar";
-import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const registered = searchParams.get("registered");
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuthStore();
+  const toast = useToastStore();
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated) {
       router.push("/dashboard");
     }
-  }, [isAuthenticated, authLoading, router]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (!formData.email || !formData.password) {
+      toast.error("Please fill in all fields");
       return;
     }
 
-    setLoading(true);
+    const result = await login(formData);
 
-    try {
-      const result = await login(formData);
-
-      if (result.success) {
-        // Redirect to dashboard
-        router.push("/dashboard");
-      } else {
-        setErrors({ general: result.error || "Invalid email or password. Please try again." });
-      }
-    } catch (error) {
-      console.error("Login failed:", error);
-      setErrors({ general: "Invalid email or password. Please try again." });
-    } finally {
-      setLoading(false);
+    if (result.success) {
+      toast.success("Welcome back! Redirecting...");
+      router.push("/dashboard");
+    } else {
+      toast.error(result.error || "Login failed");
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto">
-          <div className="text-center space-y-4 mb-8">
-            <h1 className="text-3xl font-bold">Welcome Back</h1>
-            <p className="text-muted-foreground">
-              Sign in to your account to continue
-            </p>
-            {registered && (
-              <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg">
-                Account created successfully! Please sign in.
-              </div>
-            )}
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo and Header */}
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-2xl mb-4 shadow-lg shadow-primary/20">
+            <svg
+              className="w-8 h-8 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              />
+            </svg>
           </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Welcome Back
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Sign in to access your referral dashboard
+          </p>
+        </div>
 
+        {/* Login Form */}
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-8 animate-slide-in-up backdrop-blur-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {errors.general && (
-              <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg text-sm">
-                {errors.general}
-              </div>
-            )}
-
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              placeholder="Enter your email"
-            />
-
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              placeholder="Enter your password"
-            />
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm text-muted-foreground">
-                  Remember me
-                </span>
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-foreground"
+              >
+                Email Address
               </label>
-              <Link href="#" className="text-sm text-primary hover:underline">
-                Forgot password?
-              </Link>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="h-12"
+              />
             </div>
 
-            <Button type="submit" loading={loading} className="w-full">
-              Sign In
+            <div className="space-y-2">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-foreground"
+              >
+                Password
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="h-12"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 shadow-lg shadow-primary/20 transition-all duration-200"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </div>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link href="/register" className="text-primary hover:underline">
-                Sign up
+              <Link
+                href="/register"
+                className="text-primary font-medium hover:underline"
+              >
+                Create one now
               </Link>
             </p>
           </div>
         </div>
-      </main>
-    </>
+
+        {/* Benefits */}
+        <div className="mt-8 grid grid-cols-2 gap-4 text-center animate-fade-in">
+          <div className="p-4 bg-card/50 border border-border rounded-xl backdrop-blur-sm">
+            <div className="text-2xl font-bold text-primary">2x</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Reward Credits
+            </div>
+          </div>
+          <div className="p-4 bg-card/50 border border-border rounded-xl backdrop-blur-sm">
+            <div className="text-2xl font-bold text-primary">∞</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Unlimited Referrals
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,201 +1,284 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useAuthStore } from "@/store/authStore";
+import { useToastStore } from "@/store/toastStore";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
-import { Navbar } from "@/components/Navbar";
 import { ReferrerInfo } from "@/components/ReferrerInfo";
-import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const referralCode = searchParams.get("ref");
-  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { register, isAuthenticated, isLoading } = useAuthStore();
+  const toast = useToastStore();
 
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    firstName: "",
+    lastName: "",
+    referralCode: searchParams.get("ref") || "",
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated) {
       router.push("/dashboard");
     }
-  }, [isAuthenticated, authLoading, router]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (
+      !formData.email ||
+      !formData.password ||
+      !formData.firstName ||
+      !formData.lastName
+    ) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
-    setLoading(true);
+    const result = await register(formData);
 
-    try {
-      const registerData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-        ...(referralCode && { referralCode }),
-      };
-
-      const result = await register(registerData);
-
-      if (result.success) {
-        // Redirect to dashboard after successful registration
-        router.push("/dashboard");
-      } else {
-        setErrors({
-          general: result.error || "Registration failed. Please try again.",
-        });
-      }
-    } catch (error) {
-      console.error("Registration failed:", error);
-      setErrors({ general: "Registration failed. Please try again." });
-    } finally {
-      setLoading(false);
+    if (result.success) {
+      toast.success("Account created successfully! Redirecting...");
+      router.push("/dashboard");
+    } else {
+      toast.error(result.error || "Registration failed");
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto">
-          <div className="text-center space-y-4 mb-8">
-            <h1 className="text-3xl font-bold">Create Account</h1>
-            <p className="text-muted-foreground">
-              Join our referral program and start earning rewards
-            </p>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo and Header */}
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-2xl mb-4 shadow-lg shadow-primary/20">
+            <svg
+              className="w-8 h-8 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+              />
+            </svg>
           </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Join ReferralApp
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Create your account and start earning rewards
+          </p>
+        </div>
 
-          {referralCode && (
-            <div className="mb-6">
-              <ReferrerInfo referralCode={referralCode} />
-            </div>
-          )}
+        {/* Referrer Info */}
+        {formData.referralCode && (
+          <div className="mb-6 animate-slide-in-up">
+            <ReferrerInfo referralCode={formData.referralCode} />
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {errors.general && (
-              <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg text-sm">
-                {errors.general}
+        {/* Register Form */}
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-8 animate-slide-in-up backdrop-blur-sm">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="firstName"
+                  className="text-sm font-medium text-foreground"
+                >
+                  First Name
+                </label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                  className="h-11"
+                />
               </div>
-            )}
 
-            <Input
-              label="First Name"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              error={errors.firstName}
-              placeholder="Enter your first name"
-            />
+              <div className="space-y-2">
+                <label
+                  htmlFor="lastName"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Last Name
+                </label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  className="h-11"
+                />
+              </div>
+            </div>
 
-            <Input
-              label="Last Name"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              error={errors.lastName}
-              placeholder="Enter your last name"
-            />
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-foreground"
+              >
+                Email Address
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="h-11"
+              />
+            </div>
 
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              placeholder="Enter your email"
-            />
+            <div className="space-y-2">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-foreground"
+              >
+                Password
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="h-11"
+              />
+            </div>
 
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              placeholder="Create a password"
-            />
+            <div className="space-y-2">
+              <label
+                htmlFor="referralCode"
+                className="text-sm font-medium text-foreground"
+              >
+                Referral Code{" "}
+                <span className="text-muted-foreground">(Optional)</span>
+              </label>
+              <Input
+                id="referralCode"
+                name="referralCode"
+                type="text"
+                placeholder="Enter referral code"
+                value={formData.referralCode}
+                onChange={handleChange}
+                className="h-11 uppercase"
+              />
+            </div>
 
-            <Input
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              error={errors.confirmPassword}
-              placeholder="Confirm your password"
-            />
-
-            <Button type="submit" loading={loading} className="w-full">
-              Create Account
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 shadow-lg shadow-primary/20 transition-all duration-200"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Creating account...
+                </div>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline">
+              <Link
+                href="/login"
+                className="text-primary font-medium hover:underline"
+              >
                 Sign in
               </Link>
             </p>
           </div>
         </div>
-      </main>
-    </>
+
+        {/* Benefits */}
+        <div className="mt-8 p-6 bg-card/50 border border-border rounded-2xl backdrop-blur-sm animate-fade-in">
+          <h3 className="text-sm font-semibold mb-3">What you'll get:</h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-green-500 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Unique referral link to share
+            </li>
+            <li className="flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-green-500 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              2 credits when your referral makes a purchase
+            </li>
+            <li className="flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-green-500 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Track all your referrals in one place
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
   );
 }

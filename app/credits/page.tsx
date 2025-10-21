@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { useToastStore } from "@/store/toastStore";
 import { Navbar } from "@/components/Navbar";
-import { Loader } from "@/components/Loader";
-import { useAuth } from "@/hooks/useAuth";
+import { StatCard } from "@/components/StatCard";
+import { StatCardSkeleton } from "@/components/Skeleton";
 import { useCreditHistory } from "@/hooks/useDashboard";
 
 export default function CreditsPage() {
@@ -14,8 +16,9 @@ export default function CreditsPage() {
     isAuthenticated,
     isLoading: authLoading,
     logout,
-    refreshUser,
-  } = useAuth();
+  } = useAuthStore();
+  const toast = useToastStore();
+
   const {
     creditHistory,
     loading,
@@ -32,266 +35,186 @@ export default function CreditsPage() {
 
   const handleLogout = async () => {
     await logout();
+    toast.success("Logged out successfully");
+    router.push("/login");
   };
 
-  // Show loader while checking authentication
   if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader />
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  const getSourceBadgeColor = (source: string) => {
-    switch (source) {
-      case "referral":
-        return "bg-green-100 text-green-800";
-      case "purchase":
-        return "bg-blue-100 text-blue-800";
-      case "admin":
-        return "bg-purple-100 text-purple-800";
-      case "promotion":
-        return "bg-orange-100 text-orange-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "earned":
-        return (
-          <svg
-            className="h-5 w-5 text-green-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        );
-      case "spent":
-        return (
-          <svg
-            className="h-5 w-5 text-red-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        );
-      default:
-        return (
-          <svg
-            className="h-5 w-5 text-primary"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-            />
-          </svg>
-        );
-    }
-  };
-
   return (
     <>
       <Navbar user={user} onLogout={handleLogout} />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-8">
           {/* Header */}
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Credit History</h1>
+          <div className="space-y-4 animate-fade-in">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              💰 Credit History
+            </h1>
             <p className="text-muted-foreground">
-              Track your credit earnings and transactions
+              Track your credit balance and transaction history
             </p>
           </div>
 
-          {/* Credit Balance Card */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader />
-            </div>
-          ) : error ? (
-            <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg">
-              Failed to load credit history. Please try again later.
-            </div>
-          ) : creditHistory ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-card rounded-lg border p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <svg
-                        className="h-6 w-6 text-primary"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Current Balance
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        {creditHistory.currentBalance} credits
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-card rounded-lg border p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                      <svg
-                        className="h-6 w-6 text-green-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Total Earned
-                      </p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {creditHistory.totalEarned} credits
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-card rounded-lg border p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                      <svg
-                        className="h-6 w-6 text-blue-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Total Transactions
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {creditHistory.history.length}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {loading ? (
+              <>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+              </>
+            ) : error ? (
+              <div className="col-span-full p-6 bg-destructive/10 border border-destructive/20 rounded-xl text-center">
+                <p className="text-destructive">Failed to load credit history</p>
               </div>
+            ) : (
+              <>
+                <StatCard
+                  title="Current Balance"
+                  value={creditHistory?.currentBalance ?? user.credits ?? 0}
+                  description="Available credits"
+                  icon={
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                      />
+                    </svg>
+                  }
+                  trend="up"
+                />
+                <StatCard
+                  title="Total Earned"
+                  value={creditHistory?.totalEarned ?? 0}
+                  description="Lifetime earnings"
+                  icon={
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                      />
+                    </svg>
+                  }
+                  trend="up"
+                />
+              </>
+            )}
+          </div>
 
-              {/* Transaction History */}
-              <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-xl font-semibold mb-6">
-                  Transaction History
-                </h2>
-
-                {creditHistory.history.length > 0 ? (
-                  <div className="space-y-3">
-                    {creditHistory.history.map((transaction) => (
+          {/* Transaction History */}
+          <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-lg">
+            <h2 className="text-xl font-semibold mb-6">Transaction History</h2>
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-4 border-muted border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Loading history...</p>
+              </div>
+            ) : !creditHistory || creditHistory.history.length === 0 ? (
+              <div className="text-center py-12">
+                <svg
+                  className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                <p className="text-muted-foreground font-medium">No transactions yet</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your credit history will appear here once you earn credits
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {creditHistory.history.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 rounded-xl transition-all border border-transparent hover:border-border group"
+                  >
+                    <div className="flex items-center gap-4">
                       <div
-                        key={transaction.id}
-                        className="flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+                        className={`flex items-center justify-center w-12 h-12 rounded-xl group-hover:scale-105 transition-transform ${
+                          item.type === "EARNED"
+                            ? "bg-green-500/10 text-green-600"
+                            : "bg-red-500/10 text-red-600"
+                        }`}
                       >
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="flex-shrink-0">
-                            {getTypeIcon(transaction.type)}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">
-                              {transaction.description}
-                            </p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <span
-                                className={`text-xs px-2 py-1 rounded-full ${getSourceBadgeColor(
-                                  transaction.source
-                                )}`}
-                              >
-                                {transaction.source}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(
-                                  transaction.createdAt
-                                ).toLocaleDateString()}{" "}
-                                at{" "}
-                                {new Date(
-                                  transaction.createdAt
-                                ).toLocaleTimeString()}
-                              </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Balance: {transaction.balanceBefore} →{" "}
-                              {transaction.balanceAfter}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`text-lg font-bold ${
-                              transaction.type === "earned"
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {transaction.type === "earned" ? "+" : "-"}
-                            {transaction.amount}
-                          </p>
-                        </div>
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          {item.type === "EARNED" ? (
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 4v16m8-8H4"
+                            />
+                          ) : (
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M20 12H4"
+                            />
+                          )}
+                        </svg>
                       </div>
-                    ))}
+                      <div>
+                        <p className="font-medium">{item.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(item.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={`text-lg font-bold ${
+                          item.type === "EARNED"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {item.type === "EARNED" ? "+" : "-"}
+                        {item.amount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">credits</p>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <p>No transactions yet</p>
-                    <p className="text-sm mt-2">
-                      Start referring friends to earn credits!
-                    </p>
-                  </div>
-                )}
+                ))}
               </div>
-            </>
-          ) : null}
+            )}
+          </div>
         </div>
       </main>
     </>
