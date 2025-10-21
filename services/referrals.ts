@@ -73,4 +73,3 @@ export const getReferralDetails = async (
 
   return response.data;
 };
-

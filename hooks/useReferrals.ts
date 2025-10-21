@@ -125,4 +125,3 @@ export const useReferralDetails = (code: string | null) => {
 
   return { details, loading, error };
 };
-

@@ -52,4 +52,3 @@ export const getPurchaseStats = async (): Promise<PurchaseStats> => {
 
   return response.data;
 };
-

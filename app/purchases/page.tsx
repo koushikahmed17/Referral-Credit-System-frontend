@@ -16,8 +16,16 @@ import {
 export default function PurchasesPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
-  const { stats, loading: statsLoading, refetch: refetchStats } = usePurchaseStats();
-  const { purchases, loading: purchasesLoading, refetch: refetchPurchases } = usePurchasesList();
+  const {
+    stats,
+    loading: statsLoading,
+    refetch: refetchStats,
+  } = usePurchaseStats();
+  const {
+    purchases,
+    loading: purchasesLoading,
+    refetch: refetchPurchases,
+  } = usePurchasesList();
   const { createPurchase, loading: creating } = useCreatePurchase();
 
   const [successMessage, setSuccessMessage] = useState<string>("");
@@ -42,19 +50,19 @@ export default function PurchasesPage() {
 
     if (result.success && result.data) {
       const { purchase, referralReward } = result.data;
-      
+
       let message = `Successfully purchased ${description} for $${amount}!`;
-      
+
       if (referralReward?.credited) {
         message += ` 🎉 You and your referrer each earned ${referralReward.amount} credits!`;
       }
-      
+
       setSuccessMessage(message);
-      
+
       // Refetch data to show updated stats
       refetchStats();
       refetchPurchases();
-      
+
       // Refresh user to update credits
       if (user) {
         window.location.reload(); // Simple way to refresh all data
@@ -85,7 +93,8 @@ export default function PurchasesPage() {
               Manage your purchases and make new ones
             </p>
             <div className="text-sm text-muted-foreground">
-              Current Credits: <strong className="text-primary">{user.credits}</strong>
+              Current Credits:{" "}
+              <strong className="text-primary">{user.credits}</strong>
             </div>
           </div>
 
@@ -112,87 +121,91 @@ export default function PurchasesPage() {
                 title="Total Purchases"
                 value={stats.totalPurchases}
                 description="All time purchases"
-              icon={
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
-              }
+                icon={
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                    />
+                  </svg>
+                }
               />
 
               <StatCard
                 title="Total Spent"
                 value={`$${stats.totalSpent.toFixed(2)}`}
                 description="Lifetime spending"
-              icon={
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                  />
-                </svg>
-              }
+                icon={
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                    />
+                  </svg>
+                }
               />
 
               <StatCard
                 title="First Purchase"
-                value={stats.firstPurchaseDate 
-                  ? new Date(stats.firstPurchaseDate).toLocaleDateString() 
-                  : "N/A"}
+                value={
+                  stats.firstPurchaseDate
+                    ? new Date(stats.firstPurchaseDate).toLocaleDateString()
+                    : "N/A"
+                }
                 description="Your first order"
-              icon={
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              }
+                icon={
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                }
               />
 
               <StatCard
                 title="Last Purchase"
-                value={stats.lastPurchaseDate 
-                  ? new Date(stats.lastPurchaseDate).toLocaleDateString() 
-                  : "N/A"}
+                value={
+                  stats.lastPurchaseDate
+                    ? new Date(stats.lastPurchaseDate).toLocaleDateString()
+                    : "N/A"
+                }
                 description="Most recent order"
-              icon={
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                icon={
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                 }
               />
             </div>
@@ -313,7 +326,9 @@ export default function PurchasesPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${purchase.amount.toFixed(2)}</p>
+                      <p className="font-medium">
+                        ${purchase.amount.toFixed(2)}
+                      </p>
                       {purchase.referralRewarded && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           Referral Rewarded
@@ -326,7 +341,9 @@ export default function PurchasesPage() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No purchases yet</p>
-                <p className="text-sm mt-2">Make your first purchase to get started!</p>
+                <p className="text-sm mt-2">
+                  Make your first purchase to get started!
+                </p>
               </div>
             )}
           </div>
