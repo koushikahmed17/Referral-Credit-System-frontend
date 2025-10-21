@@ -15,7 +15,13 @@ import {
 
 export default function PurchasesPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isLoading: authLoading,
+    logout,
+    refreshUser,
+  } = useAuth();
   const {
     stats,
     loading: statsLoading,
@@ -53,20 +59,16 @@ export default function PurchasesPage() {
 
       let message = `Successfully purchased ${description} for $${amount}!`;
 
-      if (referralReward?.credited) {
-        message += ` 🎉 You and your referrer each earned ${referralReward.amount} credits!`;
+      if (referralReward?.awarded) {
+        message += ` 🎉 ${referralReward.message}`;
       }
 
       setSuccessMessage(message);
 
-      // Refetch data to show updated stats
+      // Immediately refetch data to show updated stats
+      refreshUser();
       refetchStats();
       refetchPurchases();
-
-      // Refresh user to update credits
-      if (user) {
-        window.location.reload(); // Simple way to refresh all data
-      }
     } else {
       setErrorMessage(result.error || "Failed to create purchase");
     }
@@ -140,7 +142,7 @@ export default function PurchasesPage() {
 
               <StatCard
                 title="Total Spent"
-                value={`$${stats.totalSpent.toFixed(2)}`}
+                value={`$${(stats.totalAmount || 0).toFixed(2)}`}
                 description="Lifetime spending"
                 icon={
                   <svg
@@ -160,13 +162,9 @@ export default function PurchasesPage() {
               />
 
               <StatCard
-                title="First Purchase"
-                value={
-                  stats.firstPurchaseDate
-                    ? new Date(stats.firstPurchaseDate).toLocaleDateString()
-                    : "N/A"
-                }
-                description="Your first order"
+                title="Completed Purchases"
+                value={stats.completedPurchases || 0}
+                description="Successfully completed"
                 icon={
                   <svg
                     className="h-4 w-4"
@@ -185,13 +183,9 @@ export default function PurchasesPage() {
               />
 
               <StatCard
-                title="Last Purchase"
-                value={
-                  stats.lastPurchaseDate
-                    ? new Date(stats.lastPurchaseDate).toLocaleDateString()
-                    : "N/A"
-                }
-                description="Most recent order"
+                title="Average Amount"
+                value={`$${(stats.averageAmount || 0).toFixed(2)}`}
+                description="Per purchase"
                 icon={
                   <svg
                     className="h-4 w-4"
@@ -327,7 +321,7 @@ export default function PurchasesPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-medium">
-                        ${purchase.amount.toFixed(2)}
+                        ${(purchase.amount || 0).toFixed(2)}
                       </p>
                       {purchase.referralRewarded && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">

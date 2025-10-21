@@ -13,24 +13,30 @@ export const useReferralStats = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchStats = async () => {
+  const fetchStats = async (isRefetch = false) => {
     try {
-      setLoading(true);
+      // Only set loading to true on initial load, not on refetch
+      if (!isRefetch) {
+        setLoading(true);
+      }
       setError(null);
       const data = await getReferralStats();
       setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to fetch stats"));
     } finally {
-      setLoading(false);
+      if (!isRefetch) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { stats, loading, error, refetch: fetchStats };
+  return { stats, loading, error, refetch: () => fetchStats(true) };
 };
 
 // Hook to fetch referrals list
@@ -45,9 +51,12 @@ export const useReferralsList = (page: number = 1, limit: number = 10) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchReferrals = async () => {
+  const fetchReferrals = async (isRefetch = false) => {
     try {
-      setLoading(true);
+      // Only set loading to true on initial load, not on refetch
+      if (!isRefetch) {
+        setLoading(true);
+      }
       setError(null);
       const data = await getReferralsList(page, limit);
       setReferrals(data.referrals);
@@ -57,15 +66,24 @@ export const useReferralsList = (page: number = 1, limit: number = 10) => {
         err instanceof Error ? err : new Error("Failed to fetch referrals")
       );
     } finally {
-      setLoading(false);
+      if (!isRefetch) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchReferrals();
+    fetchReferrals(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit]);
 
-  return { referrals, pagination, loading, error, refetch: fetchReferrals };
+  return {
+    referrals,
+    pagination,
+    loading,
+    error,
+    refetch: () => fetchReferrals(true),
+  };
 };
 
 // Hook to validate referral code

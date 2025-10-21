@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Navbar } from "@/components/Navbar";
+import { ReferrerInfo } from "@/components/ReferrerInfo";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPage() {
@@ -95,7 +96,9 @@ export default function RegisterPage() {
         // Redirect to dashboard after successful registration
         router.push("/dashboard");
       } else {
-        setErrors({ general: result.error || "Registration failed. Please try again." });
+        setErrors({
+          general: result.error || "Registration failed. Please try again.",
+        });
       }
     } catch (error) {
       console.error("Registration failed:", error);
@@ -115,12 +118,13 @@ export default function RegisterPage() {
             <p className="text-muted-foreground">
               Join our referral program and start earning rewards
             </p>
-            {referralCode && (
-              <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg">
-                You were referred by code: <strong>{referralCode}</strong>
-              </div>
-            )}
           </div>
+
+          {referralCode && (
+            <div className="mb-6">
+              <ReferrerInfo referralCode={referralCode} />
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {errors.general && (

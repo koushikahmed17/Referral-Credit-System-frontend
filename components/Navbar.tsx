@@ -37,6 +37,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 >
                   Purchases
                 </Link>
+                <Link
+                  href="/credits"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Credits
+                </Link>
               </div>
             )}
           </div>

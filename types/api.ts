@@ -62,10 +62,11 @@ export interface Referral {
 export type ReferralStatus = "PENDING" | "CONFIRMED" | "EXPIRED";
 
 export interface ReferralStats {
-  totalReferrals: number;
-  confirmedReferrals: number;
-  pendingReferrals: number;
-  totalCreditsEarned: number;
+  totalReferred: number;
+  converted: number;
+  pending: number;
+  totalCredits: number;
+  referralLink: string;
   referralCode: string;
 }
 
@@ -85,9 +86,9 @@ export interface ReferralListResponse {
 export interface ReferralDetailsResponse {
   success: boolean;
   data: {
-    referralCode: string;
+    referrerName: string;
+    referrerEmail: string;
     isValid: boolean;
-    referrerName?: string;
   };
 }
 
@@ -97,6 +98,8 @@ export interface Purchase {
   userId: string;
   amount: number;
   description: string;
+  productId?: string;
+  metadata?: Record<string, any>;
   isFirstPurchase: boolean;
   referralRewarded: boolean;
   createdAt: string;
@@ -106,6 +109,8 @@ export interface Purchase {
 export interface CreatePurchaseRequest {
   amount: number;
   description: string;
+  productId?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface CreatePurchaseResponse {
@@ -114,18 +119,31 @@ export interface CreatePurchaseResponse {
   data: {
     purchase: Purchase;
     referralReward?: {
-      credited: boolean;
-      amount: number;
-      referrerId?: string;
+      awarded: boolean;
+      creditsEarned: number;
+      message: string;
     };
   };
 }
 
 export interface PurchaseStats {
   totalPurchases: number;
-  totalSpent: number;
-  firstPurchaseDate?: string;
-  lastPurchaseDate?: string;
+  totalAmount: number;
+  completedPurchases: number;
+  averageAmount: number;
+}
+
+export interface PurchaseListResponse {
+  success: boolean;
+  data: {
+    purchases: Purchase[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
 }
 
 // Notification types
@@ -149,11 +167,53 @@ export type NotificationType =
 
 // Dashboard types
 export interface DashboardStats {
-  user: UserProfile;
-  referrals: ReferralStats;
+  user: User;
+  referralStats: ReferralStats;
+  purchaseStats: PurchaseStats;
   recentReferrals: Referral[];
   recentPurchases: Purchase[];
-  notifications: Notification[];
+  creditsHistory: CreditHistoryItem[];
+}
+
+export interface DashboardSummary {
+  totalReferred: number;
+  converted: number;
+  totalCredits: number;
+  recentActivity: Array<{
+    type: "referral" | "purchase" | "credit";
+    message: string;
+    date: string;
+  }>;
+}
+
+export interface ReferralLinkData {
+  referralCode: string;
+  referralLink: string;
+  shareableMessage: string;
+  socialShare: {
+    twitter: string;
+    facebook: string;
+    whatsapp: string;
+    email: string;
+  };
+}
+
+export interface CreditHistoryItem {
+  id: string;
+  userId: string;
+  amount: number;
+  type: "earned" | "spent" | "bonus";
+  source: "referral" | "purchase" | "admin" | "promotion";
+  description: string;
+  balanceBefore: number;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+export interface CreditHistory {
+  currentBalance: number;
+  totalEarned: number;
+  history: CreditHistoryItem[];
 }
 
 // Error types

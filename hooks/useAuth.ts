@@ -74,7 +74,32 @@ export const useAuth = () => {
         throw new Error(response.message || "Login failed");
       }
 
-      const { user, token } = response.data;
+      // Handle nested user structure
+      let user: User;
+      const token = response.data.token;
+
+      if (response.data.user) {
+        // Check for double-nested structure
+        if (response.data.user.user) {
+          // Double nested: response.data.user.user has the actual data
+          user = {
+            id: response.data.user.userId || response.data.user.user.id,
+            email: response.data.user.email || response.data.user.user.email,
+            ...response.data.user.user,
+          } as User;
+        } else {
+          // Single nested: response.data.user has the data
+          user = {
+            id: response.data.userId || response.data.user.id,
+            email: response.data.email || response.data.user.email,
+            ...response.data.user,
+          } as User;
+        }
+      } else {
+        // Flat structure: { success: true, data: { firstName, lastName, ..., token } }
+        const { token: _, ...userData } = response.data;
+        user = userData as User;
+      }
 
       // Store in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
@@ -111,7 +136,32 @@ export const useAuth = () => {
         throw new Error(response.message || "Registration failed");
       }
 
-      const { user, token } = response.data;
+      // Handle nested user structure
+      let user: User;
+      const token = response.data.token;
+
+      if (response.data.user) {
+        // Check for double-nested structure
+        if (response.data.user.user) {
+          // Double nested: response.data.user.user has the actual data
+          user = {
+            id: response.data.user.userId || response.data.user.user.id,
+            email: response.data.user.email || response.data.user.user.email,
+            ...response.data.user.user,
+          } as User;
+        } else {
+          // Single nested: response.data.user has the data
+          user = {
+            id: response.data.userId || response.data.user.id,
+            email: response.data.email || response.data.user.email,
+            ...response.data.user,
+          } as User;
+        }
+      } else {
+        // Flat structure: { success: true, data: { firstName, lastName, ..., token } }
+        const { token: _, ...userData } = response.data;
+        user = userData as User;
+      }
 
       // Store in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
@@ -163,21 +213,62 @@ export const useAuth = () => {
 
   const refreshUser = async () => {
     try {
-      if (!authState.token) return;
-
-      const response = await fetcher.get<{ success: boolean; data: { user: User } }>(
-        API_ENDPOINTS.AUTH.PROFILE
-      );
-
-      if (!response.success) {
-        throw new Error("Failed to fetch profile");
+      if (!authState.token) {
+        return null;
       }
 
-      const user = response.data.user;
+      const response = await fetcher.get<any>(API_ENDPOINTS.AUTH.PROFILE);
+
+      // Handle different response structures
+      let user: User | null = null;
+
+      if (response && response.success === true) {
+        // Backend structure: { success: true, data: { user: { userId, email, user: {...} } } }
+        if (response.data && response.data.user) {
+          // Check if there's a double-nested user object
+          if (response.data.user.user) {
+            // Double nested: response.data.user.user has the actual data
+            user = {
+              id: response.data.user.userId || response.data.user.user.id,
+              email: response.data.user.email || response.data.user.user.email,
+              ...response.data.user.user, // Spread the INNER user object
+            } as User;
+          } else {
+            // Single nested: response.data.user has the data
+            user = {
+              id: response.data.userId || response.data.user.id,
+              email: response.data.email || response.data.user.email,
+              ...response.data.user,
+            } as User;
+          }
+        }
+        // Alternative: { success: true, data: { firstName, lastName, ... } }
+        else if (
+          response.data &&
+          response.data.email &&
+          response.data.firstName
+        ) {
+          user = response.data as User;
+        }
+        // Alternative: { success: true, user: {...} }
+        else if (response.user) {
+          user = response.user;
+        }
+      }
+      // Alternative: direct user object
+      else if (response && response.id && response.email) {
+        user = response as User;
+      }
+
+      if (!user || !user.email) {
+        console.error("Failed to extract valid user from response");
+        return null;
+      }
 
       // Update localStorage
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
 
+      // Update state
       setAuthState((prev) => ({
         ...prev,
         user,
@@ -186,8 +277,8 @@ export const useAuth = () => {
       return user;
     } catch (error) {
       console.error("Error refreshing user:", error);
-      // If refresh fails, logout user
-      logout();
+      // Don't modify state on error - keep existing user data
+      return null;
     }
   };
 

@@ -44,5 +44,12 @@ export const API_ENDPOINTS = {
     CREATE: "/purchases",
     LIST: "/purchases",
     STATS: "/purchases/stats",
+    GET_BY_ID: "/purchases",
+  },
+  DASHBOARD: {
+    STATS: "/dashboard/stats",
+    SUMMARY: "/dashboard/summary",
+    REFERRAL_LINK: "/dashboard/referral-link",
+    CREDIT_HISTORY: "/dashboard/credit-history",
   },
 } as const;

@@ -1,24 +1,39 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { StatCard } from "@/components/StatCard";
 import { CopyButton } from "@/components/CopyButton";
 import { Navbar } from "@/components/Navbar";
 import { Loader } from "@/components/Loader";
+import { SocialShare } from "@/components/SocialShare";
 import { useAuth } from "@/hooks/useAuth";
 import { useReferralStats, useReferralsList } from "@/hooks/useReferrals";
+import { useReferralLink } from "@/hooks/useDashboard";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const {
+    user,
+    isAuthenticated,
+    isLoading: authLoading,
+    logout,
+    refreshUser,
+  } = useAuth();
   const {
     stats,
     loading: statsLoading,
     error: statsError,
+    refetch: refetchStats,
   } = useReferralStats();
-  const { referrals, loading: referralsLoading } = useReferralsList(1, 5);
+  const {
+    referrals,
+    loading: referralsLoading,
+    refetch: refetchReferrals,
+  } = useReferralsList(1, 5);
+  const { referralLink, loading: linkLoading } = useReferralLink();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -27,8 +42,9 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, authLoading, router]);
 
-  const referralLink =
-    typeof window !== "undefined" && user
+  // Always construct referral link using frontend URL (not backend URL)
+  const displayReferralLink =
+    typeof window !== "undefined" && user && user.referralCode
       ? `${window.location.origin}/register?ref=${user.referralCode}`
       : "";
 
@@ -53,7 +69,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="space-y-2">
             <h1 className="text-3xl font-bold">
-              Welcome, {user.firstName} {user.lastName}!
+              Welcome, {user.firstName || ""} {user.lastName || ""}!
             </h1>
             <p className="text-muted-foreground">
               Track your referral performance and earnings
@@ -61,114 +77,161 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4 text-sm">
               <span className="text-muted-foreground">
                 Your Credits:{" "}
-                <strong className="text-primary">{user.credits}</strong>
+                <strong className="text-primary">{user.credits ?? 0}</strong>
               </span>
               <span className="text-muted-foreground">
                 Referral Code:{" "}
-                <strong className="text-primary">{user.referralCode}</strong>
+                <strong className="text-primary">
+                  {user.referralCode || ""}
+                </strong>
               </span>
+              <button
+                onClick={async () => {
+                  if (isRefreshing) return;
+                  setIsRefreshing(true);
+                  try {
+                    await Promise.all([
+                      refreshUser(),
+                      refetchStats(),
+                      refetchReferrals(),
+                    ]);
+                  } catch (error) {
+                    console.error("Error refreshing data:", error);
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+                disabled={isRefreshing}
+                className={`text-xs ${
+                  isRefreshing
+                    ? "text-muted-foreground cursor-not-allowed"
+                    : "text-primary hover:text-primary/80"
+                } underline`}
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh Data"}
+              </button>
             </div>
           </div>
 
           {/* Stats Grid */}
-          {statsLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader />
-            </div>
-          ) : statsError ? (
-            <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg">
-              Failed to load stats. Please try again later.
-            </div>
-          ) : stats ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
-                title="Total Referrals"
-                value={stats.totalReferrals}
-                description="People you've referred"
-                icon={
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                }
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Always show credits - uses user data */}
+            <StatCard
+              title="Total Credits"
+              value={user.credits ?? 0}
+              description="Your current balance"
+              icon={
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                  />
+                </svg>
+              }
+            />
 
-              <StatCard
-                title="Confirmed Referrals"
-                value={stats.confirmedReferrals}
-                description="Completed referrals"
-                icon={
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                }
-              />
+            {/* Referral stats - show loading/error states */}
+            {statsLoading ? (
+              <>
+                <div className="bg-card rounded-lg border p-6 flex items-center justify-center">
+                  <Loader />
+                </div>
+                <div className="bg-card rounded-lg border p-6 flex items-center justify-center">
+                  <Loader />
+                </div>
+                <div className="bg-card rounded-lg border p-6 flex items-center justify-center">
+                  <Loader />
+                </div>
+              </>
+            ) : statsError ? (
+              <>
+                <div className="bg-card rounded-lg border p-6">
+                  <p className="text-sm text-destructive">Failed to load</p>
+                </div>
+                <div className="bg-card rounded-lg border p-6">
+                  <p className="text-sm text-destructive">Failed to load</p>
+                </div>
+                <div className="bg-card rounded-lg border p-6">
+                  <p className="text-sm text-destructive">Failed to load</p>
+                </div>
+              </>
+            ) : stats ? (
+              <>
+                <StatCard
+                  title="Total Referrals"
+                  value={stats.totalReferred}
+                  description="People you've referred"
+                  icon={
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                  }
+                />
 
-              <StatCard
-                title="Total Credits Earned"
-                value={stats.totalCreditsEarned}
-                description="From referrals"
-                icon={
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                    />
-                  </svg>
-                }
-              />
+                <StatCard
+                  title="Converted Referrals"
+                  value={stats.converted}
+                  description="Made a purchase"
+                  icon={
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  }
+                />
 
-              <StatCard
-                title="Pending Referrals"
-                value={stats.pendingReferrals}
-                description="Awaiting first purchase"
-                icon={
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                }
-              />
-            </div>
-          ) : null}
+                <StatCard
+                  title="Pending Referrals"
+                  value={stats.pending}
+                  description="Awaiting first purchase"
+                  icon={
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  }
+                />
+              </>
+            ) : null}
+          </div>
 
           {/* Referral Link Section */}
-          <div className="bg-card rounded-lg border p-6 space-y-4">
+          <div className="bg-card rounded-lg border p-6 space-y-6">
             <div className="space-y-2">
               <h2 className="text-xl font-semibold">Your Referral Link</h2>
               <p className="text-muted-foreground">
@@ -178,10 +241,20 @@ export default function DashboardPage() {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 p-3 bg-muted rounded-md border">
-                <code className="text-sm break-all">{referralLink}</code>
+                <code className="text-sm break-all">{displayReferralLink}</code>
               </div>
-              <CopyButton text={referralLink} />
+              <CopyButton text={displayReferralLink} />
             </div>
+
+            {/* Social Share Buttons */}
+            {referralLink && referralLink.socialShare && (
+              <div className="border-t pt-6">
+                <SocialShare
+                  socialShare={referralLink.socialShare}
+                  shareableMessage={referralLink.shareableMessage}
+                />
+              </div>
+            )}
           </div>
 
           {/* Quick Actions */}

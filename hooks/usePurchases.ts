@@ -32,9 +32,15 @@ export const usePurchaseStats = () => {
   return { stats, loading, error, refetch: fetchStats };
 };
 
-// Hook to fetch purchases list
-export const usePurchasesList = () => {
+// Hook to fetch purchases list with pagination
+export const usePurchasesList = (page: number = 1, limit: number = 10) => {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -42,8 +48,9 @@ export const usePurchasesList = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getPurchasesList();
-      setPurchases(data);
+      const data = await getPurchasesList(page, limit);
+      setPurchases(data.purchases);
+      setPagination(data.pagination);
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error("Failed to fetch purchases")
@@ -55,9 +62,9 @@ export const usePurchasesList = () => {
 
   useEffect(() => {
     fetchPurchases();
-  }, []);
+  }, [page, limit]);
 
-  return { purchases, loading, error, refetch: fetchPurchases };
+  return { purchases, pagination, loading, error, refetch: fetchPurchases };
 };
 
 // Hook to create a purchase
