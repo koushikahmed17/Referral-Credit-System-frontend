@@ -32,13 +32,13 @@ export default function DashboardPage() {
     error: statsError,
     refetch: refetchStats,
   } = useReferralStats();
-  
+
   const {
     referrals,
     loading: referralsLoading,
     refetch: refetchReferrals,
   } = useReferralsList(1, 5);
-  
+
   const { referralLink, loading: linkLoading } = useReferralLink();
 
   // Redirect if not authenticated
@@ -168,7 +168,10 @@ export default function DashboardPage() {
                   />
                 </svg>
                 <span className="text-muted-foreground">
-                  Code: <strong className="text-foreground">{user.referralCode}</strong>
+                  Code:{" "}
+                  <strong className="text-foreground">
+                    {user.referralCode}
+                  </strong>
                 </span>
               </div>
             </div>
@@ -185,7 +188,9 @@ export default function DashboardPage() {
               </>
             ) : statsError ? (
               <div className="col-span-full p-6 bg-destructive/10 border border-destructive/20 rounded-xl text-center">
-                <p className="text-destructive">Failed to load stats. Please try refreshing.</p>
+                <p className="text-destructive">
+                  Failed to load stats. Please try refreshing.
+                </p>
               </div>
             ) : (
               <>
@@ -339,44 +344,83 @@ export default function DashboardPage() {
               ) : referrals.length > 0 ? (
                 <>
                   <div className="space-y-3">
-                    {referrals.map((referral) => (
-                      <div
-                        key={referral.id}
-                        className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 rounded-xl transition-colors border border-transparent hover:border-border"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-primary-foreground font-semibold shadow-lg">
-                            {referral.referredUser?.firstName?.[0] || "?"}
+                    {referrals.map((referral) => {
+                      // Extract user info from referredUser or parse from referredUserId string
+                      let firstName = "New";
+                      let lastName = "User";
+                      let email = "";
+
+                      if (referral.referredUser) {
+                        // Normal case: proper referredUser object
+                        firstName = referral.referredUser.firstName || "New";
+                        lastName = referral.referredUser.lastName || "User";
+                        email = referral.referredUser.email || "";
+                      } else if (
+                        typeof referral.referredUserId === "string" &&
+                        referral.referredUserId.includes("firstName")
+                      ) {
+                        // Backend sent user data as string in referredUserId - parse it
+                        const emailMatch =
+                          referral.referredUserId.match(/email:\s*'([^']+)'/);
+                        const firstNameMatch = referral.referredUserId.match(
+                          /firstName:\s*'([^']+)'/
+                        );
+                        const lastNameMatch = referral.referredUserId.match(
+                          /lastName:\s*'([^']+)'/
+                        );
+
+                        if (emailMatch) email = emailMatch[1];
+                        if (firstNameMatch) firstName = firstNameMatch[1];
+                        if (lastNameMatch) lastName = lastNameMatch[1];
+                      }
+
+                      const initials = `${firstName[0]}${lastName[0]}`;
+
+                      return (
+                        <div
+                          key={referral.id}
+                          className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 rounded-xl transition-colors border border-transparent hover:border-border"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-primary-foreground font-semibold shadow-lg text-sm">
+                              {initials}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {`${firstName} ${lastName}`}
+                              </p>
+                              {email ? (
+                                <p className="text-xs text-muted-foreground">
+                                  {email}
+                                </p>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    referral.createdAt
+                                  ).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">
-                              {referral.referredUser
-                                ? `${referral.referredUser.firstName} ${referral.referredUser.lastName}`
-                                : "User"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(referral.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-xs px-3 py-1 rounded-full font-medium ${
-                              referral.status === "CONFIRMED"
-                                ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                                : "bg-yellow-500/10 text-yellow-600 border border-yellow-500/20"
-                            }`}
-                          >
-                            {referral.status}
-                          </span>
-                          {referral.status === "CONFIRMED" && (
-                            <span className="text-sm font-semibold text-green-600">
-                              +{referral.rewardAmount}
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                referral.status === "CONFIRMED"
+                                  ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                                  : "bg-yellow-500/10 text-yellow-600 border border-yellow-500/20"
+                              }`}
+                            >
+                              {referral.status}
                             </span>
-                          )}
+                            {referral.status === "CONFIRMED" && (
+                              <span className="text-sm font-semibold text-green-600">
+                                +{referral.rewardAmount}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <Link href="/referrals">
                     <Button variant="outline" className="w-full">
@@ -427,7 +471,10 @@ export default function DashboardPage() {
               </h3>
               <div className="space-y-3">
                 <Link href="/purchases" className="block">
-                  <Button variant="outline" className="w-full justify-start h-12 text-left group hover:bg-primary/5 hover:border-primary/20 transition-all">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 text-left group hover:bg-primary/5 hover:border-primary/20 transition-all"
+                  >
                     <svg
                       className="mr-3 h-5 w-5 text-primary group-hover:scale-110 transition-transform"
                       fill="none"
@@ -443,12 +490,17 @@ export default function DashboardPage() {
                     </svg>
                     <div>
                       <div className="font-medium">Make a Purchase</div>
-                      <div className="text-xs text-muted-foreground">Create a new purchase</div>
+                      <div className="text-xs text-muted-foreground">
+                        Create a new purchase
+                      </div>
                     </div>
                   </Button>
                 </Link>
                 <Link href="/credits" className="block">
-                  <Button variant="outline" className="w-full justify-start h-12 text-left group hover:bg-primary/5 hover:border-primary/20 transition-all">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 text-left group hover:bg-primary/5 hover:border-primary/20 transition-all"
+                  >
                     <svg
                       className="mr-3 h-5 w-5 text-primary group-hover:scale-110 transition-transform"
                       fill="none"
@@ -464,12 +516,17 @@ export default function DashboardPage() {
                     </svg>
                     <div>
                       <div className="font-medium">Credit History</div>
-                      <div className="text-xs text-muted-foreground">View all transactions</div>
+                      <div className="text-xs text-muted-foreground">
+                        View all transactions
+                      </div>
                     </div>
                   </Button>
                 </Link>
                 <Link href="/referrals" className="block">
-                  <Button variant="outline" className="w-full justify-start h-12 text-left group hover:bg-primary/5 hover:border-primary/20 transition-all">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 text-left group hover:bg-primary/5 hover:border-primary/20 transition-all"
+                  >
                     <svg
                       className="mr-3 h-5 w-5 text-primary group-hover:scale-110 transition-transform"
                       fill="none"
@@ -485,7 +542,9 @@ export default function DashboardPage() {
                     </svg>
                     <div>
                       <div className="font-medium">Referral Stats</div>
-                      <div className="text-xs text-muted-foreground">Detailed analytics</div>
+                      <div className="text-xs text-muted-foreground">
+                        Detailed analytics
+                      </div>
                     </div>
                   </Button>
                 </Link>

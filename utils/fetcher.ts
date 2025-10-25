@@ -17,12 +17,26 @@ class Fetcher {
   ): Promise<T> {
     const { token, ...fetchOptions } = options;
 
-    // Get token from localStorage if not provided
-    const authToken =
-      token ||
-      (typeof window !== "undefined"
-        ? localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-        : null);
+    // Get token from Zustand persisted storage or old localStorage
+    let authToken = token;
+
+    if (!authToken && typeof window !== "undefined") {
+      // Try to get from Zustand persisted state first
+      const zustandAuth = localStorage.getItem("auth-storage");
+      if (zustandAuth) {
+        try {
+          const parsed = JSON.parse(zustandAuth);
+          authToken = parsed.state?.token || null;
+        } catch (e) {
+          console.error("Failed to parse auth storage:", e);
+        }
+      }
+
+      // Fallback to old storage location
+      if (!authToken) {
+        authToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      }
+    }
 
     const url = `${this.baseURL}${endpoint}`;
 
@@ -94,10 +108,25 @@ export const authenticatedFetch = async <T>(
   endpoint: string,
   options?: FetchOptions
 ): Promise<T> => {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-      : null;
+  let token: string | null = null;
+
+  if (typeof window !== "undefined") {
+    // Try to get from Zustand persisted state first
+    const zustandAuth = localStorage.getItem("auth-storage");
+    if (zustandAuth) {
+      try {
+        const parsed = JSON.parse(zustandAuth);
+        token = parsed.state?.token || null;
+      } catch (e) {
+        console.error("Failed to parse auth storage:", e);
+      }
+    }
+
+    // Fallback to old storage location
+    if (!token) {
+      token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    }
+  }
 
   if (!token) {
     throw new Error("No authentication token found");

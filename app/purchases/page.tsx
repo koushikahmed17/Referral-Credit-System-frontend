@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useToastStore } from "@/store/toastStore";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
 import { StatCard } from "@/components/StatCard";
 import { Navbar } from "@/components/Navbar";
 import { StatCardSkeleton } from "@/components/Skeleton";
@@ -14,6 +13,71 @@ import {
   usePurchasesList,
   useCreatePurchase,
 } from "@/hooks/usePurchases";
+
+// Predefined packages
+const PACKAGES = [
+  {
+    id: "basic",
+    name: "Basic Package",
+    description: "Perfect for getting started",
+    price: 9.99,
+    features: [
+      "Access to basic features",
+      "Email support",
+      "1 GB storage",
+      "Valid for 1 month",
+    ],
+    popular: false,
+    icon: "📦",
+  },
+  {
+    id: "premium",
+    name: "Premium Package",
+    description: "Most popular choice",
+    price: 29.99,
+    features: [
+      "All basic features",
+      "Priority support",
+      "10 GB storage",
+      "Advanced analytics",
+      "Valid for 3 months",
+    ],
+    popular: true,
+    icon: "⭐",
+  },
+  {
+    id: "pro",
+    name: "Pro Package",
+    description: "For power users",
+    price: 49.99,
+    features: [
+      "All premium features",
+      "24/7 dedicated support",
+      "Unlimited storage",
+      "Custom integrations",
+      "API access",
+      "Valid for 6 months",
+    ],
+    popular: false,
+    icon: "💎",
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise Package",
+    description: "For large teams",
+    price: 99.99,
+    features: [
+      "All pro features",
+      "Dedicated account manager",
+      "Custom solutions",
+      "SLA guarantee",
+      "Training included",
+      "Valid for 1 year",
+    ],
+    popular: false,
+    icon: "🏢",
+  },
+];
 
 export default function PurchasesPage() {
   const router = useRouter();
@@ -38,11 +102,7 @@ export default function PurchasesPage() {
   } = usePurchasesList();
   const { createPurchase, loading: creating } = useCreatePurchase();
 
-  const [formData, setFormData] = useState({
-    description: "",
-    amount: "",
-  });
-  const [showForm, setShowForm] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -57,17 +117,13 @@ export default function PurchasesPage() {
     router.push("/login");
   };
 
-  const handlePurchase = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.description || !formData.amount) {
-      toast.error("Please fill in all fields");
-      return;
-    }
+  const handlePurchase = async (pkg: (typeof PACKAGES)[0]) => {
+    setSelectedPackage(pkg.id);
 
     const result = await createPurchase({
-      amount: parseFloat(formData.amount),
-      description: formData.description,
+      amount: pkg.price,
+      description: `${pkg.name} - ${pkg.description}`,
+      productId: pkg.id,
     });
 
     if (result.success && result.data) {
@@ -75,23 +131,22 @@ export default function PurchasesPage() {
 
       if (referralReward?.awarded) {
         toast.success(
-          `🎉 Purchase created! ${referralReward.message}`,
+          `🎉 ${pkg.name} purchased! ${referralReward.message}`,
           5000
         );
       } else {
-        toast.success("Purchase created successfully!");
+        toast.success(`✅ ${pkg.name} purchased successfully!`);
       }
-
-      setFormData({ description: "", amount: "" });
-      setShowForm(false);
 
       // Refresh data
       refreshUser();
       refetchStats();
       refetchPurchases();
     } else {
-      toast.error(result.error || "Failed to create purchase");
+      toast.error(result.error || "Failed to complete purchase");
     }
+
+    setSelectedPackage(null);
   };
 
   if (authLoading || !user) {
@@ -111,102 +166,14 @@ export default function PurchasesPage() {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                💳 Purchases
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Track and manage all your purchases
-              </p>
-            </div>
-            <Button
-              onClick={() => setShowForm(!showForm)}
-              className="w-full sm:w-auto bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 shadow-lg shadow-primary/20"
-            >
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              New Purchase
-            </Button>
+          <div className="space-y-4 animate-fade-in">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              💳 Purchase Packages
+            </h1>
+            <p className="text-muted-foreground">
+              Choose the perfect package for your needs
+            </p>
           </div>
-
-          {/* Purchase Form */}
-          {showForm && (
-            <div className="bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl border border-border p-6 sm:p-8 shadow-xl animate-slide-in-up">
-              <h2 className="text-xl font-semibold mb-6">Create New Purchase</h2>
-              <form onSubmit={handlePurchase} className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Description</label>
-                    <Input
-                      placeholder="What did you purchase?"
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      required
-                      className="h-12"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Amount ($)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={formData.amount}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          amount: e.target.value,
-                        }))
-                      }
-                      required
-                      className="h-12"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    type="submit"
-                    disabled={creating}
-                    className="flex-1 h-12 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700"
-                  >
-                    {creating ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Creating...
-                      </div>
-                    ) : (
-                      "Create Purchase"
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowForm(false)}
-                    className="px-8"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </div>
-          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -305,9 +272,112 @@ export default function PurchasesPage() {
             )}
           </div>
 
+          {/* Packages Section */}
+          <div>
+            <h2 className="text-2xl font-semibold mb-6">Available Packages</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {PACKAGES.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className={`relative bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl border-2 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col ${
+                    pkg.popular
+                      ? "border-primary shadow-primary/20"
+                      : "border-border"
+                  }`}
+                >
+                  {/* Popular Badge */}
+                  {pkg.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="bg-gradient-to-r from-primary to-purple-600 text-primary-foreground text-xs font-bold px-4 py-1 rounded-full shadow-lg">
+                        MOST POPULAR
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Package Icon */}
+                  <div className="text-center mb-4">
+                    <div className="text-5xl mb-3">{pkg.icon}</div>
+                    <h3 className="text-xl font-bold">{pkg.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {pkg.description}
+                    </p>
+                  </div>
+
+                  {/* Price */}
+                  <div className="text-center mb-6">
+                    <div className="flex items-end justify-center gap-1">
+                      <span className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                        ${pkg.price}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <ul className="space-y-3 mb-6 flex-grow">
+                    {pkg.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm">
+                        <svg
+                          className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Purchase Button */}
+                  <div className="mt-auto">
+                    <Button
+                      onClick={() => handlePurchase(pkg)}
+                      disabled={creating && selectedPackage === pkg.id}
+                      className={`w-full h-12 ${
+                        pkg.popular
+                          ? "bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-primary-foreground shadow-lg shadow-primary/20"
+                          : "bg-gradient-to-r from-primary/80 to-purple-600/80 hover:from-primary hover:to-purple-600 text-primary-foreground"
+                      }`}
+                    >
+                      {creating && selectedPackage === pkg.id ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Processing...
+                        </div>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                            />
+                          </svg>
+                          Buy Package
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Purchases List */}
           <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-lg">
-            <h2 className="text-xl font-semibold mb-6">Recent Purchases</h2>
+            <h2 className="text-xl font-semibold mb-6">Purchase History</h2>
             {purchasesLoading ? (
               <div className="text-center py-12">
                 <div className="w-12 h-12 border-4 border-muted border-t-primary rounded-full animate-spin mx-auto mb-4" />
@@ -328,9 +398,11 @@ export default function PurchasesPage() {
                     d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                   />
                 </svg>
-                <p className="text-muted-foreground font-medium">No purchases yet</p>
+                <p className="text-muted-foreground font-medium">
+                  No purchases yet
+                </p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Create your first purchase to get started!
+                  Choose a package above to get started!
                 </p>
               </div>
             ) : (

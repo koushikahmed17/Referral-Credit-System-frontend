@@ -108,6 +108,12 @@ export const useAuthStore = create<AuthState>()(
           const user = extractUser(response.data);
           const token = response.data.token;
 
+          // Also save to old localStorage location for backward compatibility
+          if (typeof window !== "undefined") {
+            localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+            localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+          }
+
           set({
             user,
             token,
@@ -141,6 +147,12 @@ export const useAuthStore = create<AuthState>()(
           const user = extractUser(response.data);
           const token = response.data.token;
 
+          // Also save to old localStorage location for backward compatibility
+          if (typeof window !== "undefined") {
+            localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+            localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+          }
+
           set({
             user,
             token,
@@ -168,6 +180,12 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error("Logout API error:", error);
         } finally {
+          // Clear old localStorage locations
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+          }
+
           set({
             user: null,
             token: null,
@@ -184,9 +202,7 @@ export const useAuthStore = create<AuthState>()(
             return null;
           }
 
-          const response = await fetcher.get<any>(
-            API_ENDPOINTS.AUTH.PROFILE
-          );
+          const response = await fetcher.get<any>(API_ENDPOINTS.AUTH.PROFILE);
 
           if (!response || !response.success) {
             return null;
@@ -217,4 +233,3 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
-

@@ -4,11 +4,16 @@ import { Button } from "./Button";
 import type { User } from "@/store/authStore";
 
 interface NavbarProps {
-  user: User;
+  user: User | null;
   onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
+  // Don't render if user is not available
+  if (!user) {
+    return null;
+  }
+
   return (
     <nav className="bg-card/80 backdrop-blur-lg border-b border-border sticky top-0 z-40 shadow-sm">
       <div className="container mx-auto px-4 max-w-7xl">

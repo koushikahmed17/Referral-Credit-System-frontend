@@ -203,58 +203,93 @@ export default function ReferralsPage() {
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   />
                 </svg>
-                <p className="text-muted-foreground font-medium text-lg">No referrals yet</p>
+                <p className="text-muted-foreground font-medium text-lg">
+                  No referrals yet
+                </p>
                 <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-                  Share your referral link from the dashboard to start earning credits when your friends make their first purchase!
+                  Share your referral link from the dashboard to start earning
+                  credits when your friends make their first purchase!
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {referrals.map((referral) => (
-                  <div
-                    key={referral.id}
-                    className="flex items-center justify-between p-5 bg-muted/30 hover:bg-muted/50 rounded-xl transition-all border border-transparent hover:border-border group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg group-hover:scale-105 transition-transform">
-                        {referral.referredUser?.firstName?.[0] || "?"}
-                        {referral.referredUser?.lastName?.[0] || ""}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-lg">
-                          {referral.referredUser
-                            ? `${referral.referredUser.firstName} ${referral.referredUser.lastName}`
-                            : "User"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {referral.referredUser?.email || "No email"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Joined {new Date(referral.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
+                {referrals.map((referral) => {
+                  // Extract user info from referredUser or parse from referredUserId string
+                  let firstName = "New";
+                  let lastName = "User";
+                  let email = "Email not available";
 
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <span
-                          className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
-                            referral.status === "CONFIRMED"
-                              ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                              : "bg-yellow-500/10 text-yellow-600 border border-yellow-500/20"
-                          }`}
-                        >
-                          {referral.status}
-                        </span>
-                        {referral.status === "CONFIRMED" && (
-                          <p className="text-sm font-bold text-green-600 mt-2">
-                            +{referral.rewardAmount} credits
+                  if (referral.referredUser) {
+                    // Normal case: proper referredUser object
+                    firstName = referral.referredUser.firstName || "New";
+                    lastName = referral.referredUser.lastName || "User";
+                    email =
+                      referral.referredUser.email || "Email not available";
+                  } else if (
+                    typeof referral.referredUserId === "string" &&
+                    referral.referredUserId.includes("firstName")
+                  ) {
+                    // Backend sent user data as string in referredUserId - parse it
+                    const emailMatch =
+                      referral.referredUserId.match(/email:\s*'([^']+)'/);
+                    const firstNameMatch = referral.referredUserId.match(
+                      /firstName:\s*'([^']+)'/
+                    );
+                    const lastNameMatch = referral.referredUserId.match(
+                      /lastName:\s*'([^']+)'/
+                    );
+
+                    if (emailMatch) email = emailMatch[1];
+                    if (firstNameMatch) firstName = firstNameMatch[1];
+                    if (lastNameMatch) lastName = lastNameMatch[1];
+                  }
+
+                  const initials = `${firstName[0]}${lastName[0]}`;
+
+                  return (
+                    <div
+                      key={referral.id}
+                      className="flex items-center justify-between p-5 bg-muted/30 hover:bg-muted/50 rounded-xl transition-all border border-transparent hover:border-border group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg group-hover:scale-105 transition-transform">
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-lg">
+                            {`${firstName} ${lastName}`}
                           </p>
-                        )}
+                          <p className="text-sm text-muted-foreground">
+                            {email}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Joined{" "}
+                            {new Date(referral.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <span
+                            className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
+                              referral.status === "CONFIRMED"
+                                ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                                : "bg-yellow-500/10 text-yellow-600 border border-yellow-500/20"
+                            }`}
+                          >
+                            {referral.status}
+                          </span>
+                          {referral.status === "CONFIRMED" && (
+                            <p className="text-sm font-bold text-green-600 mt-2">
+                              +{referral.rewardAmount} credits
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -263,4 +298,3 @@ export default function ReferralsPage() {
     </>
   );
 }
-
