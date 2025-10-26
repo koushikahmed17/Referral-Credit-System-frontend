@@ -7,7 +7,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Referral App - Earn Rewards",
-  description: "A modern referral system built with Next.js - Share, Earn, Succeed",
+  description:
+    "A modern referral system built with Next.js - Share, Earn, Succeed",
 };
 
 export default function RootLayout({
