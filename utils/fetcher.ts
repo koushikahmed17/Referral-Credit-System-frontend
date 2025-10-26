@@ -54,9 +54,26 @@ class Fetcher {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
+
+        // Create a custom error with validation details
+        const customError: any = new Error(
           errorData.message || `HTTP error! status: ${response.status}`
         );
+
+        // Attach validation errors if they exist
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          customError.validationErrors = errorData.errors;
+        } else if (errorData.errors && typeof errorData.errors === "object") {
+          // Convert object to array format
+          customError.validationErrors = Object.entries(errorData.errors).map(
+            ([field, message]) => ({
+              field,
+              message: Array.isArray(message) ? message[0] : message,
+            })
+          );
+        }
+
+        throw customError;
       }
 
       const data = await response.json();

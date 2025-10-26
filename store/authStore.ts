@@ -122,11 +122,12 @@ export const useAuthStore = create<AuthState>()(
           });
 
           return { success: true };
-        } catch (error) {
+        } catch (error: any) {
           set({ isLoading: false });
           return {
             success: false,
             error: error instanceof Error ? error.message : "Login failed",
+            validationErrors: error.validationErrors || [],
           };
         }
       },
@@ -161,12 +162,13 @@ export const useAuthStore = create<AuthState>()(
           });
 
           return { success: true };
-        } catch (error) {
+        } catch (error: any) {
           set({ isLoading: false });
           return {
             success: false,
             error:
               error instanceof Error ? error.message : "Registration failed",
+            validationErrors: error.validationErrors || [],
           };
         }
       },

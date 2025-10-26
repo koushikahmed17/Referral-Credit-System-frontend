@@ -23,6 +23,15 @@ export default function RegisterPage() {
     referralCode: searchParams.get("ref") || "",
   });
 
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    firstName?: string;
+    lastName?: string;
+    referralCode?: string;
+    general?: string;
+  }>({});
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -33,31 +42,165 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Clear previous errors
+    setErrors({});
+
+    // Basic validation
     if (
       !formData.email ||
       !formData.password ||
       !formData.firstName ||
       !formData.lastName
     ) {
+      const newErrors: typeof errors = {};
+      if (!formData.firstName) newErrors.firstName = "First name is required";
+      if (!formData.lastName) newErrors.lastName = "Last name is required";
+      if (!formData.email) newErrors.email = "Email is required";
+      if (!formData.password) newErrors.password = "Password is required";
+      setErrors(newErrors);
+
       toast.error("Please fill in all required fields");
       return;
     }
 
-    const result = await register(formData);
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setErrors({ email: "Please enter a valid email address" });
+      toast.error("Invalid email format");
+      return;
+    }
+
+    // Password length validation
+    if (formData.password.length < 6) {
+      setErrors({ password: "Password must be at least 6 characters long" });
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    // Prepare registration data - only include referralCode if it has a value
+    const registerData: any = {
+      email: formData.email,
+      password: formData.password,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+    };
+
+    // Only include referralCode if user provided one
+    if (formData.referralCode && formData.referralCode.trim()) {
+      registerData.referralCode = formData.referralCode.trim();
+    }
+
+    const result = await register(registerData);
 
     if (result.success) {
       toast.success("Account created successfully! Redirecting...");
       router.push("/dashboard");
     } else {
+      const newErrors: typeof errors = {};
+
+      // Use validation errors from API if available
+      if (
+        (result as any).validationErrors &&
+        Array.isArray((result as any).validationErrors)
+      ) {
+        (result as any).validationErrors.forEach((err: any) => {
+          const field = err.field || err.path;
+          const message = err.message;
+
+          // Map validation field names to our form field names
+          if (field === "email" || field?.toLowerCase().includes("email")) {
+            newErrors.email = message || "Invalid email";
+          } else if (
+            field === "password" ||
+            field?.toLowerCase().includes("password")
+          ) {
+            newErrors.password = message || "Invalid password";
+          } else if (
+            field === "firstName" ||
+            field === "firstname" ||
+            field === "first_name"
+          ) {
+            newErrors.firstName = message || "Invalid first name";
+          } else if (
+            field === "lastName" ||
+            field === "lastname" ||
+            field === "last_name"
+          ) {
+            newErrors.lastName = message || "Invalid last name";
+          } else if (field === "referralCode" || field === "referral_code") {
+            // Only show referral code error if user actually entered a value
+            if (formData.referralCode && formData.referralCode.trim()) {
+              newErrors.referralCode = message || "Invalid referral code";
+            }
+          }
+        });
+      }
+
+      // Fallback to parsing error message if no validation errors
+      if (Object.keys(newErrors).length === 0) {
+        const errorMessage = result.error || "Registration failed";
+
+        if (
+          errorMessage.toLowerCase().includes("email") ||
+          errorMessage.toLowerCase().includes("already exists") ||
+          errorMessage.toLowerCase().includes("already registered") ||
+          errorMessage.toLowerCase().includes("duplicate")
+        ) {
+          newErrors.email = "This email is already registered";
+        }
+
+        if (errorMessage.toLowerCase().includes("password")) {
+          newErrors.password = "Invalid password";
+        }
+
+        // Only show referral code error if user actually entered a value
+        if (
+          (errorMessage.toLowerCase().includes("referral") ||
+            errorMessage.toLowerCase().includes("invalid code")) &&
+          formData.referralCode &&
+          formData.referralCode.trim()
+        ) {
+          newErrors.referralCode = "Invalid referral code";
+        }
+
+        if (
+          errorMessage.toLowerCase().includes("firstname") ||
+          errorMessage.toLowerCase().includes("first name")
+        ) {
+          newErrors.firstName = "Invalid first name";
+        }
+        if (
+          errorMessage.toLowerCase().includes("lastname") ||
+          errorMessage.toLowerCase().includes("last name")
+        ) {
+          newErrors.lastName = "Invalid last name";
+        }
+
+        if (Object.keys(newErrors).length === 0) {
+          newErrors.general = errorMessage;
+        }
+      }
+
+      setErrors(newErrors);
       toast.error(result.error || "Registration failed");
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+
+    // Clear error for this field when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
   };
 
   return (
@@ -98,6 +241,13 @@ export default function RegisterPage() {
         {/* Register Form */}
         <div className="bg-card border border-border rounded-2xl shadow-xl p-8 animate-slide-in-up backdrop-blur-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* General error message */}
+            {errors.general && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                {errors.general}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label
@@ -113,6 +263,7 @@ export default function RegisterPage() {
                   placeholder="John"
                   value={formData.firstName}
                   onChange={handleChange}
+                  error={errors.firstName}
                   required
                   className="h-11"
                 />
@@ -132,6 +283,7 @@ export default function RegisterPage() {
                   placeholder="Doe"
                   value={formData.lastName}
                   onChange={handleChange}
+                  error={errors.lastName}
                   required
                   className="h-11"
                 />
@@ -152,6 +304,7 @@ export default function RegisterPage() {
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
+                error={errors.email}
                 required
                 className="h-11"
               />
@@ -171,6 +324,7 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
+                error={errors.password}
                 required
                 className="h-11"
               />
@@ -191,6 +345,7 @@ export default function RegisterPage() {
                 placeholder="Enter referral code"
                 value={formData.referralCode}
                 onChange={handleChange}
+                error={errors.referralCode}
                 className="h-11 uppercase"
               />
             </div>

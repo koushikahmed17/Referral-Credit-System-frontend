@@ -18,6 +18,12 @@ export default function LoginPage() {
     password: "",
   });
 
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    general?: string;
+  }>({});
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -28,8 +34,19 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Clear previous errors
+    setErrors({});
+
+    // Basic validation
     if (!formData.email || !formData.password) {
-      toast.error("Please fill in all fields");
+      const newErrors: typeof errors = {};
+      if (!formData.email) newErrors.email = "Email is required";
+      if (!formData.password) newErrors.password = "Password is required";
+      setErrors(newErrors);
+
+      if (!formData.email || !formData.password) {
+        toast.error("Please fill in all fields");
+      }
       return;
     }
 
@@ -39,15 +56,64 @@ export default function LoginPage() {
       toast.success("Welcome back! Redirecting...");
       router.push("/dashboard");
     } else {
+      const newErrors: typeof errors = {};
+
+      // Use validation errors from API if available
+      if (
+        (result as any).validationErrors &&
+        Array.isArray((result as any).validationErrors)
+      ) {
+        (result as any).validationErrors.forEach((err: any) => {
+          const field = err.field || err.path;
+          if (field === "email") newErrors.email = err.message;
+          if (field === "password") newErrors.password = err.message;
+        });
+      }
+
+      // Fallback to parsing error message if no validation errors
+      if (Object.keys(newErrors).length === 0) {
+        const errorMessage = result.error || "Login failed";
+
+        if (
+          errorMessage.toLowerCase().includes("email") ||
+          errorMessage.toLowerCase().includes("user not found") ||
+          errorMessage.toLowerCase().includes("invalid email")
+        ) {
+          newErrors.email = "Invalid email address";
+        }
+
+        if (
+          errorMessage.toLowerCase().includes("password") ||
+          errorMessage.toLowerCase().includes("invalid credentials") ||
+          errorMessage.toLowerCase().includes("incorrect password")
+        ) {
+          newErrors.password = "Incorrect password";
+        }
+
+        if (Object.keys(newErrors).length === 0) {
+          newErrors.general = errorMessage;
+        }
+      }
+
+      setErrors(newErrors);
       toast.error(result.error || "Login failed");
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+
+    // Clear error for this field when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
   };
 
   return (
@@ -81,6 +147,13 @@ export default function LoginPage() {
         {/* Login Form */}
         <div className="bg-card border border-border rounded-2xl shadow-xl p-8 animate-slide-in-up backdrop-blur-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* General error message */}
+            {errors.general && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                {errors.general}
+              </div>
+            )}
+
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -95,6 +168,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
+                error={errors.email}
                 required
                 className="h-12"
               />
@@ -114,6 +188,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
+                error={errors.password}
                 required
                 className="h-12"
               />
