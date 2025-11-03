@@ -381,7 +381,7 @@ export default function RegisterPage() {
 
         {/* Benefits */}
         <div className="mt-8 p-6 bg-card/50 border border-border rounded-2xl backdrop-blur-sm animate-fade-in">
-          <h3 className="text-sm font-semibold mb-3">What you'll get:</h3>
+          <h3 className="text-sm font-semibold mb-3">What you&apos;ll get:</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">
               <svg

@@ -93,6 +93,8 @@ export interface ReferralDetailsResponse {
 }
 
 // Purchase types
+export type PurchaseStatus = "PENDING" | "COMPLETED" | "CANCELLED";
+
 export interface Purchase {
   id: string;
   userId: string;
@@ -102,6 +104,7 @@ export interface Purchase {
   metadata?: Record<string, any>;
   isFirstPurchase: boolean;
   referralRewarded: boolean;
+  status?: PurchaseStatus;
   createdAt: string;
   updatedAt?: string;
 }

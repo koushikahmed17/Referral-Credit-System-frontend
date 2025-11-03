@@ -74,32 +74,9 @@ export const useAuth = () => {
         throw new Error(response.message || "Login failed");
       }
 
-      // Handle nested user structure
-      let user: User;
+      // Get user and token from response
+      const user = response.data.user;
       const token = response.data.token;
-
-      if (response.data.user) {
-        // Check for double-nested structure
-        if (response.data.user.user) {
-          // Double nested: response.data.user.user has the actual data
-          user = {
-            id: response.data.user.userId || response.data.user.user.id,
-            email: response.data.user.email || response.data.user.user.email,
-            ...response.data.user.user,
-          } as User;
-        } else {
-          // Single nested: response.data.user has the data
-          user = {
-            id: response.data.userId || response.data.user.id,
-            email: response.data.email || response.data.user.email,
-            ...response.data.user,
-          } as User;
-        }
-      } else {
-        // Flat structure: { success: true, data: { firstName, lastName, ..., token } }
-        const { token: _, ...userData } = response.data;
-        user = userData as User;
-      }
 
       // Store in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
@@ -136,32 +113,9 @@ export const useAuth = () => {
         throw new Error(response.message || "Registration failed");
       }
 
-      // Handle nested user structure
-      let user: User;
+      // Get user and token from response
+      const user = response.data.user;
       const token = response.data.token;
-
-      if (response.data.user) {
-        // Check for double-nested structure
-        if (response.data.user.user) {
-          // Double nested: response.data.user.user has the actual data
-          user = {
-            id: response.data.user.userId || response.data.user.user.id,
-            email: response.data.user.email || response.data.user.user.email,
-            ...response.data.user.user,
-          } as User;
-        } else {
-          // Single nested: response.data.user has the data
-          user = {
-            id: response.data.userId || response.data.user.id,
-            email: response.data.email || response.data.user.email,
-            ...response.data.user,
-          } as User;
-        }
-      } else {
-        // Flat structure: { success: true, data: { firstName, lastName, ..., token } }
-        const { token: _, ...userData } = response.data;
-        user = userData as User;
-      }
 
       // Store in localStorage
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);

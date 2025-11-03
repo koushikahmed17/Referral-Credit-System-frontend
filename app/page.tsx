@@ -1,16 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/Button";
 import { Navbar } from "@/components/Navbar";
 
 export default function HomePage() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+
+  // Redirect to dashboard if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  const handleLogout = () => {};
 
   return (
     <>
-      <Navbar />
+      {user && <Navbar user={user} onLogout={handleLogout} />}
       <main className="container mx-auto px-4 py-16">
         <div className="text-center space-y-8">
           <div className="space-y-4">

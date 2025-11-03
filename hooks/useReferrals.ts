@@ -128,7 +128,10 @@ export const useReferralDetails = (code: string | null) => {
         setLoading(true);
         setError(null);
         const data = await getReferralDetails(code);
-        setDetails(data);
+        setDetails({
+          ...data,
+          referralCode: code,
+        });
       } catch (err) {
         setError(
           err instanceof Error ? err : new Error("Failed to fetch details")

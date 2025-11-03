@@ -119,7 +119,8 @@ export const ReferrerInfo: React.FC<ReferrerInfoProps> = ({ referralCode }) => {
           </p>
           <div className="bg-background rounded-md px-3 py-2">
             <p className="text-xs text-primary font-medium">
-              🎉 You'll both earn 2 credits when you make your first purchase!
+              🎉 You&apos;ll both earn 2 credits when you make your first
+              purchase!
             </p>
           </div>
         </div>

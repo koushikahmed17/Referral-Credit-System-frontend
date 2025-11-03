@@ -431,16 +431,7 @@ export default function PurchasesPage() {
                       <div>
                         <p className="font-medium">{purchase.description}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(purchase.createdAt).toLocaleDateString()} •{" "}
-                          <span
-                            className={`font-medium ${
-                              purchase.status === "COMPLETED"
-                                ? "text-green-600"
-                                : "text-yellow-600"
-                            }`}
-                          >
-                            {purchase.status}
-                          </span>
+                          {new Date(purchase.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

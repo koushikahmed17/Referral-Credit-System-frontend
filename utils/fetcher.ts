@@ -11,14 +11,11 @@ class Fetcher {
     this.baseURL = baseURL;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: FetchOptions = {}
-  ): Promise<T> {
+  async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const { token, ...fetchOptions } = options;
 
     // Get token from Zustand persisted storage or old localStorage
-    let authToken = token;
+    let authToken: string | undefined = token;
 
     if (!authToken && typeof window !== "undefined") {
       // Try to get from Zustand persisted state first
@@ -26,7 +23,7 @@ class Fetcher {
       if (zustandAuth) {
         try {
           const parsed = JSON.parse(zustandAuth);
-          authToken = parsed.state?.token || null;
+          authToken = parsed.state?.token || undefined;
         } catch (e) {
           console.error("Failed to parse auth storage:", e);
         }
@@ -34,7 +31,7 @@ class Fetcher {
 
       // Fallback to old storage location
       if (!authToken) {
-        authToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        authToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || undefined;
       }
     }
 

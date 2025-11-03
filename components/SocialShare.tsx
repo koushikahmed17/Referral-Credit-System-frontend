@@ -98,7 +98,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({
         <div className="mt-4 p-4 bg-muted rounded-lg border">
           <p className="text-sm font-medium mb-2">Shareable Message:</p>
           <p className="text-sm text-muted-foreground italic">
-            "{shareableMessage}"
+            {`"${shareableMessage}"`}
           </p>
         </div>
       )}

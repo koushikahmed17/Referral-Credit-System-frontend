@@ -74,7 +74,9 @@ export default function CreditsPage() {
               </>
             ) : error ? (
               <div className="col-span-full p-6 bg-destructive/10 border border-destructive/20 rounded-xl text-center">
-                <p className="text-destructive">Failed to load credit history</p>
+                <p className="text-destructive">
+                  Failed to load credit history
+                </p>
               </div>
             ) : (
               <>
@@ -147,7 +149,9 @@ export default function CreditsPage() {
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                   />
                 </svg>
-                <p className="text-muted-foreground font-medium">No transactions yet</p>
+                <p className="text-muted-foreground font-medium">
+                  No transactions yet
+                </p>
                 <p className="text-sm text-muted-foreground mt-2">
                   Your credit history will appear here once you earn credits
                 </p>
@@ -162,7 +166,7 @@ export default function CreditsPage() {
                     <div className="flex items-center gap-4">
                       <div
                         className={`flex items-center justify-center w-12 h-12 rounded-xl group-hover:scale-105 transition-transform ${
-                          item.type === "EARNED"
+                          item.type === "earned"
                             ? "bg-green-500/10 text-green-600"
                             : "bg-red-500/10 text-red-600"
                         }`}
@@ -173,7 +177,7 @@ export default function CreditsPage() {
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          {item.type === "EARNED" ? (
+                          {item.type === "earned" ? (
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -200,12 +204,12 @@ export default function CreditsPage() {
                     <div className="text-right">
                       <p
                         className={`text-lg font-bold ${
-                          item.type === "EARNED"
+                          item.type === "earned"
                             ? "text-green-600"
                             : "text-red-600"
                         }`}
                       >
-                        {item.type === "EARNED" ? "+" : "-"}
+                        {item.type === "earned" ? "+" : "-"}
                         {item.amount}
                       </p>
                       <p className="text-xs text-muted-foreground">credits</p>
